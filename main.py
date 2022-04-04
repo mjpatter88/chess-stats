@@ -1,5 +1,6 @@
 import requests
 import chessdotcom
+import highest_win_tracker
 
 USERNAME='mjpatter88'
 
@@ -16,63 +17,27 @@ def run():
     user_games = chessdotcom.get_user_games(USERNAME)
     print(f"Total games played: {len(user_games)}")
 
-    win_count = 0
-    opponents = set()
-
+    tracker = highest_win_tracker.HighestWinTracker();
     # find all opponents that were beaten and find their highest rating in any time control.
-    for game in user_games:
-        white = game['white']
-        black = game['black']
-        if white['username'] == USERNAME:
-            if white['result'] == 'win':
-                win_count += 1
-                opponents.add(black['username'])
-        else:
-            if black['result'] == 'win':
-                win_count += 1
-                opponents.add(white['username'])
-
-    print(f"Wins: {win_count}")
-    print(f"Total unique opponents: {len(opponents)}")
-    print(opponents.pop())
-
-    highest_rating = 0
-    highest_opp = ""
-    highest_opp_type = ""
-
-    for index, user in enumerate(opponents):
+    for index, game in enumerate(user_games):
         if(index % 50 == 0):
             print(f"{index},", end="", flush=True)
-        user_stats = chessdotcom.get_user_stats(user)
-        best_rapid = _get_best_rating(user_stats, 'chess_rapid')
-        best_blitz = _get_best_rating(user_stats, 'chess_blitz')
-        best_bullet = _get_best_rating(user_stats, 'chess_bullet')
-
-        if best_rapid > highest_rating:
-            highest_rating = best_rapid
-            highest_opp = user
-            highest_opp_type = "rapid"
-        if best_blitz > highest_rating:
-            highest_rating = best_blitz
-            highest_opp = user
-            highest_opp_type = "blitz"
-        if best_bullet > highest_rating:
-            highest_rating = best_bullet
-            highest_opp = user
-            highest_opp_type = "bullet"
+        tracker.add(game, USERNAME)
 
     print()
-    print("Opponent with highest rating in any time control:")
-    print(highest_opp)
-    print(f"{highest_opp_type}: {highest_rating}")
+    opponent = tracker.best_opponent()
+    best_game = tracker.best_win()
 
+    if opponent:
+        print("Opponent with highest rating in any time control:")
+        print(opponent.username)
+        print(f"Rapid: {opponent.best_rapid}")
+        print(f"Blitz: {opponent.best_blitz}")
+        print(f"Bullet: {opponent.best_bullet}")
 
-def _get_best_rating(user_stats, time_control):
-    if time_control not in user_stats:
-        return 0
-    if 'best' not in user_stats[time_control]:
-        return 0
-    return user_stats[time_control]['best']['rating']
+    print("Game Info:")
+    print(best_game)
+
 
 
 
